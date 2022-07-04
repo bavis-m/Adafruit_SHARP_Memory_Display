@@ -101,6 +101,11 @@ Adafruit_SharpMem::Adafruit_SharpMem(SPIClass *theSPI, uint8_t cs,
                                   theSPI);
 }
 
+void Adafruit_SharpMem::setFreq(uint32_t freq)
+{
+    if (spidev) spidev->changeFreq(freq);
+}
+
 /**
  * @brief Start the driver object, setting up pins and configuring a buffer for
  * the screen contents
