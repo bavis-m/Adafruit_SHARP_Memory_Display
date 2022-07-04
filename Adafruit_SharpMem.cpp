@@ -351,3 +351,13 @@ void Adafruit_SharpMem::clearDisplayBuffer() {
   memset(sharpmem_buffer, 0xff, (WIDTH * HEIGHT) / 8);
   memset(modline_buffer, 0xff, HEIGHT / 8 + 1);
 }
+
+const uint8_t* Adafruit_SharpMem::getBuffer(size_t* size)
+{
+    *size = (WIDTH * HEIGHT) / 8;
+    return sharpmem_buffer;
+}
+void Adafruit_SharpMem::setBuffer(const uint8_t* buffer)
+{
+    memcpy(sharpmem_buffer, buffer, (WIDTH * HEIGHT) / 8);
+}

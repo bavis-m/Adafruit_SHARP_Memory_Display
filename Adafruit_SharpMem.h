@@ -47,6 +47,8 @@ public:
   void clearDisplay();
   void refresh(void);
   void clearDisplayBuffer();
+  const uint8_t* getBuffer(size_t* size);
+  void setBuffer(const uint8_t* buffer);
 
 private:
   Adafruit_SPIDevice *spidev = NULL;
