@@ -243,6 +243,9 @@ void Adafruit_SharpMem::clearDisplay() {
   spidev->endTransaction();
 }
 
+#define TIMING(c)
+//#define TIMING(c) c
+
 /**************************************************************************/
 /*!
     @brief Renders the contents of the pixel buffer on the LCD
@@ -250,17 +253,40 @@ void Adafruit_SharpMem::clearDisplay() {
 /**************************************************************************/
 void Adafruit_SharpMem::refresh(void) {
   uint16_t i, currentline;
-
+  TIMING(
+          unsigned long m1;
+          unsigned long m2;
+          m1 = micros();
+  )
   spidev->beginTransaction();
+  TIMING(
+          m2 = micros();
+          unsigned long t1 = m2 - m1;
+  )
+  
   // Send the write command
   digitalWrite(_cs, HIGH);
+  TIMING(
+          m1 = micros();
+          unsigned long t2 = m1 - m2;
+  )
 
   spidev->transfer(_sharpmem_vcom | SHARPMEM_BIT_WRITECMD);
   TOGGLE_VCOM;
 
+  TIMING(
+          m2 = micros();
+          unsigned long t3 = m2 - m1;
+  )
+
   uint8_t bytes_per_line = WIDTH / 8;
   uint16_t totalbytes = (WIDTH * HEIGHT) / 8;
 
+  TIMING(
+          unsigned long ttm = 0;
+          unsigned long timings[200];
+          int count = 0;
+  )
   for (i = 0; i < totalbytes; i += bytes_per_line) {
     uint8_t line[bytes_per_line + 2];
 
@@ -271,19 +297,49 @@ void Adafruit_SharpMem::refresh(void) {
 
     line[0] = currentline;
     // copy over this line
+    TIMING(unsigned long m3 = micros();)
     memcpy(line + 1, sharpmem_buffer + i, bytes_per_line);
+    TIMING(
+            unsigned long m4 = micros();
+            ttm += m4 - m3;
+    )
     // Send end of line
     line[bytes_per_line + 1] = 0x00;
     // send it!
     spidev->transfer(line, bytes_per_line + 2);
+    TIMING(
+            m3 = micros();
+            timings[count++] = m3 - m4;
+    )
+    //if (i == 0) Serial.printf("spidev->transfer time: %lu\n", micros() - m);
   }
+  TIMING(
+          m1 = micros();
+          unsigned long t4 = m1 - m2;
+  )
 
   // Send another trailing 8 bits for the last line
   spidev->transfer(0x00);
   digitalWrite(_cs, LOW);
   spidev->endTransaction();
 
+  TIMING(
+          m2 = micros();
+          unsigned long t5 = m2 - m1;
+  )
+
   memset(modline_buffer, 0x00, HEIGHT / 8 + 1);
+
+  TIMING(
+          m2 = micros();
+          unsigned long t6 = m2 - m1;
+          Serial.printf("refresh timing: %lu %lu %lu %lu %lu %lu %lu\n", t1, t2, t3, t4, t5, t6, ttm);
+          for (int i = 0; i < count; i++)
+          {
+              Serial.printf("%lu,", timings[i]);
+          }
+          Serial.print("\n");
+  )
 }
 
 /**************************************************************************/
