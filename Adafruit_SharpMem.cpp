@@ -124,9 +124,17 @@ boolean Adafruit_SharpMem::begin(void) {
   _sharpmem_vcom = SHARPMEM_BIT_VCOM;
 
   sharpmem_buffer = (uint8_t *)malloc((WIDTH * HEIGHT) / 8);
-
   if (!sharpmem_buffer)
     return false;
+
+  modline_buffer = (uint8_t *)malloc(HEIGHT / 8 + 1);
+  if (!modline_buffer)
+  {
+    free(sharpmem_buffer);
+    return false;
+  }
+  memset(modline_buffer, 0xFF, HEIGHT / 8 + 1);
+
 
   setRotation(0);
 
@@ -176,6 +184,7 @@ void Adafruit_SharpMem::drawPixel(int16_t x, int16_t y, uint16_t color) {
   } else {
     sharpmem_buffer[(y * WIDTH + x) / 8] &= pgm_read_byte(&clr[x & 7]);
   }
+  modline_buffer[y / 8] |= pgm_read_byte(&set[y & 7]);
 }
 
 /**************************************************************************/
@@ -220,6 +229,7 @@ uint8_t Adafruit_SharpMem::getPixel(uint16_t x, uint16_t y) {
 /**************************************************************************/
 void Adafruit_SharpMem::clearDisplay() {
   memset(sharpmem_buffer, 0xff, (WIDTH * HEIGHT) / 8);
+  memset(modline_buffer, 0x00, HEIGHT / 8 + 1);
 
   spidev->beginTransaction();
   // Send the clear screen command rather than doing a HW refresh (quicker)
@@ -256,6 +266,9 @@ void Adafruit_SharpMem::refresh(void) {
 
     // Send address byte
     currentline = ((i + 1) / (WIDTH / 8)) + 1;
+
+    if (!(modline_buffer[(currentline - 1) / 8] & pgm_read_byte(&set[(currentline - 1) & 7]))) continue;
+
     line[0] = currentline;
     // copy over this line
     memcpy(line + 1, sharpmem_buffer + i, bytes_per_line);
@@ -269,6 +282,8 @@ void Adafruit_SharpMem::refresh(void) {
   spidev->transfer(0x00);
   digitalWrite(_cs, LOW);
   spidev->endTransaction();
+
+  memset(modline_buffer, 0x00, HEIGHT / 8 + 1);
 }
 
 /**************************************************************************/
@@ -278,4 +293,5 @@ void Adafruit_SharpMem::refresh(void) {
 /**************************************************************************/
 void Adafruit_SharpMem::clearDisplayBuffer() {
   memset(sharpmem_buffer, 0xff, (WIDTH * HEIGHT) / 8);
+  memset(modline_buffer, 0xff, HEIGHT / 8 + 1);
 }

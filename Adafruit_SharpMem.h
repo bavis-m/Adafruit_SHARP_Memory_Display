@@ -53,6 +53,7 @@ private:
   uint8_t *sharpmem_buffer = NULL;
   uint8_t _cs;
   uint8_t _sharpmem_vcom;
+  uint8_t *modline_buffer = NULL;
 };
 
 #endif
